@@ -16,12 +16,13 @@ public class ImageSearcherConsole
     private const int MOUSEEVENTF_LEFTDOWN = 0x02;
     private const int MOUSEEVENTF_LEFTUP = 0x04;
 
-    public static Point? FindImageOnScreen(Bitmap searchImage, double tolerance = 0.95)
-    {
-        using Bitmap screenImage = CaptureScreen();
-        return FindImage(screenImage, searchImage, tolerance);
-    }
-
+    /// <summary>
+    /// Searches for the given searchImage on the given sourceImage and returns the location of the center of the first match found.
+    /// </summary>
+    /// <param name="sourceImage">The source image to search in. Normally a screenshot of the desktop.</param>
+    /// <param name="searchImage">The image to search for.</param>
+    /// <param name="tolerance">The tolerance of the image search. Defaults to 0.95.</param>
+    /// <returns>The location of the center of the first match found, or null if no match was found.</returns>
     public static Point? FindImage(Bitmap sourceImage, Bitmap searchImage, double tolerance = 0.95)
     {
         int sourceWidth = sourceImage.Width;
@@ -63,9 +64,9 @@ public class ImageSearcherConsole
     }
 
     /// <summary>
-    /// Captures a screenshot of the entire screen.
+    /// Captures the current screen as a bitmap.
     /// </summary>
-    /// <returns>A bitmap image of the screen.</returns>
+    /// <returns>The captured screen as a bitmap.</returns>
     private static Bitmap CaptureScreen()
     {
         int screenWidth = GetSystemMetrics(SM_CXSCREEN);
@@ -78,14 +79,23 @@ public class ImageSearcherConsole
     }
 
     /// <summary>
-    /// Finds an image on the screen and performs a mouse click at the found location.
+    /// Searches for the given images on the screen and clicks on the first match found.
     /// </summary>
-    /// <param name="searchImage">The image to find on the screen.</param>
-    /// <param name="tolerance">The tolerance for the image search. Defaults to 0.95.</param>
-    /// <returns>true if the image was found and clicked, false otherwise.</returns>
-    public static bool ClickImage(Bitmap searchImage, double tolerance = 0.95)
+    /// <param name="searchImageList">The images to search for.</param>
+    /// <param name="tolerance">The tolerance of the image search. Defaults to 0.95.</param>
+    /// <returns>True if a match was found and clicked, false otherwise.</returns>
+    public static bool ClickImage(List<Bitmap> searchImageList, double tolerance = 0.95)
     {
-        Point? location = FindImageOnScreen(searchImage, tolerance);
+        Point? location = null;
+        using Bitmap screenImage = CaptureScreen();
+        
+        foreach(Bitmap image in searchImageList) {
+            location = FindImage(screenImage, image, tolerance);
+            if(location.HasValue) {
+                break;
+            }
+        }
+
         if (location.HasValue)
         {
             Console.WriteLine($"Image found at: {location.Value.X}, {location.Value.Y}");
@@ -97,77 +107,59 @@ public class ImageSearcherConsole
         }
         else
         {
-            Console.WriteLine("Image not found.");
+            Console.WriteLine("No image found.");
             return false;
         }
     }
 
     /// <summary>
     /// The main entry point for the application.
-    /// This application will search for two images on the screen and click on them.
-    /// The first image is a variant of the Vortex download button, and the second is a variant of the Nexus download button.
-    /// The application will loop until the user holds down the 'C' key.
     /// </summary>
+    /// <remarks>
+    /// This program will search for the given images on the screen and click on them when found.
+    /// The search is continuous until the program is stopped.
+    /// </remarks>
     public static void Main(string[] args)
     {
+        const int MAX_FAILURES = 15; // 1 minute of thread sleep
         int tracker = 0;
+        int failures = 0;
+        bool success = false;
 
         try
         {
             Console.WriteLine("Starting image search...");
             Thread.Sleep(2000);
 
-            Bitmap imageToFind = (Bitmap)Image.FromFile("images/Vortex_Download_Button_Variant1.png");
-            Bitmap imageVariantToFind = (Bitmap)Image.FromFile("images/Vortex_Download_Button_Variant2.png");
-            Bitmap image2ToFind = (Bitmap)Image.FromFile("images/Nexus_Download_Button_Variant1.png");
-            Bitmap image2VariantToFind = (Bitmap)Image.FromFile("images/Nexus_Download_Button_Variant2.png");
-
-            Console.WriteLine("Performing Loop, hold C to stop");
-            
-            // while(!Console.KeyAvailable) {
-            while (true)
+            List<Bitmap> imageToFindList = new List<Bitmap>();
+            string[] imageFiles = Directory.GetFiles("images", "*.*", SearchOption.TopDirectoryOnly);
+            foreach (string file in imageFiles)
             {
-                bool success1 = false;
-                bool success2 = false;
-
-                while (!success1)
-                {
-                    success1 = ClickImage(imageToFind, .85);
-                    if (!success1)
-                    {
-                        success1 = ClickImage(imageVariantToFind, .85);
-                    }
-                }
-                if (!success1)
-                {
-                    break;
-                }
-                Console.WriteLine("Vortex Download Button Clicked");
-                Thread.Sleep(500);
-
-                while (!success2)
-                {
-                    success2 = ClickImage(image2ToFind, .85);
-                    if (!success2)
-                    {
-                        success2 = ClickImage(image2VariantToFind, .85);
-                    }
-                }
-                if (!success2)
-                {
-                    break;
-                }
-                Console.WriteLine("Nexus Download Button Clicked");
-                Thread.Sleep(5000);
-
-                success1 = false;
-                success2 = false;
-
-                Console.WriteLine($"Amount of files downloaded so far: {++tracker}");
+                imageToFindList.Add((Bitmap)Image.FromFile(file));
             }
 
+            Console.WriteLine("Performing Loop, hold C to stop");
+
+            // while(!Console.KeyAvailable) {
+            while (failures < MAX_FAILURES)
+            {
+                success = ClickImage(imageToFindList);
+                Thread.Sleep(5000);
+
+                if(success == true) {
+                    Console.WriteLine($"Amount of buttons clicked so far: {++tracker}");
+                    failures = 0;
+                } else {
+                    failures++;
+                }
+
+                success = false;
+            }
+
+            int filesTracked = (int)MathF.Floor(tracker / 2f);
+
             Console.WriteLine("Image search and click completed.");
-            Console.WriteLine($"Amount of files downloaded total: {tracker}");
+            Console.WriteLine($"Amount of files downloaded total: { filesTracked}");
             Console.Read();
         }
         catch (Exception ex)
