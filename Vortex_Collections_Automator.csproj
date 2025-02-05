@@ -7,6 +7,12 @@
     <Nullable>enable</Nullable>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishSingleFile>true</PublishSingleFile>
+    <FileVersion>1.0.0</FileVersion>
+    <Company>OfChaos</Company>
+    <Authors>ShadeOfChaos</Authors>
+    <Product>Vortex Collections Automator</Product>
+    <Description>Uses screencaptures to determine the position of download buttons, clicking them. Made for Vortex, can be used for anything really.</Description>
+    <Language>English</Language>
   </PropertyGroup>
 
   <ItemGroup>
