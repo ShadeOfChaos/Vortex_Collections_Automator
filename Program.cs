@@ -1,6 +1,8 @@
 ﻿using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
 
 public class ImageSearcherConsole
 {
@@ -121,7 +123,13 @@ public class ImageSearcherConsole
     /// </remarks>
     public static void Main(string[] args)
     {
-        const int MAX_FAILURES = 15; // 1 minute of thread sleep
+        Config? config = ReadConfig();
+        if(config == null) {
+            Console.WriteLine("Could not read settings.json. Aborting. Press any key to exit.");
+            Console.Read();
+            Environment.Exit(0);
+        }
+
         int tracker = 0;
         int failures = 0;
         bool success = false;
@@ -129,22 +137,21 @@ public class ImageSearcherConsole
         try
         {
             Console.WriteLine("Starting image search...");
-            Thread.Sleep(2000);
 
             List<Bitmap> imageToFindList = new List<Bitmap>();
-            string[] imageFiles = Directory.GetFiles("images", "*.*", SearchOption.TopDirectoryOnly);
+            string[] imageFiles = Directory.GetFiles(config.imageFolder, "*.*", SearchOption.TopDirectoryOnly);
             foreach (string file in imageFiles)
             {
                 imageToFindList.Add((Bitmap)Image.FromFile(file));
             }
 
-            Console.WriteLine("Performing Loop, hold C to stop");
+            Console.Write("");
+            Console.WriteLine("Performing Loop, hold ANY key to stop or wait till finished.");
+            Console.Write("");
 
-            // while(!Console.KeyAvailable) {
-            while (failures < MAX_FAILURES)
+            while (!Console.KeyAvailable && failures < config.maxFailuresBeforeStop)
             {
-                success = ClickImage(imageToFindList);
-                Thread.Sleep(5000);
+                success = ClickImage(imageToFindList, config.imageSimilarityTolerance);
 
                 if(success == true) {
                     Console.WriteLine($"Amount of buttons clicked so far: {++tracker}");
@@ -154,11 +161,13 @@ public class ImageSearcherConsole
                 }
 
                 success = false;
+                Thread.Sleep(config.imageSearchDelayInMs);
             }
 
             int filesTracked = (int)MathF.Floor(tracker / 2f);
 
-            Console.WriteLine("Image search and click completed.");
+            Console.WriteLine("");
+            Console.WriteLine("Task finished or canceled");
             Console.WriteLine($"Amount of files downloaded total: { filesTracked}");
             Console.Read();
         }
@@ -168,4 +177,55 @@ public class ImageSearcherConsole
             Console.Read();
         }
     }
+
+    /// <summary>
+    /// Reads the configuration from settings.json.
+    /// If the file does not exist, it will be created with default values.
+    /// </summary>
+    /// <returns>The configuration read from the file, or null if the file cannot be read.</returns>
+    private static Config? ReadConfig() {
+        const string SETTINGS_FILENAME = "settings.json";
+
+        if(!File.Exists(@SETTINGS_FILENAME)) {
+            Console.WriteLine("No settings.json found. Creating one.");
+
+            Config newConfig = new Config
+            {
+                imageFolder = "images",
+                maxFailuresBeforeStop = 10,
+                imageSimilarityTolerance = 0.95,
+                imageSearchDelayInMs = 6000
+            };
+
+            string json = JsonSerializer.Serialize(newConfig);
+            File.WriteAllText(@SETTINGS_FILENAME, json, Encoding.UTF8);
+        }
+
+        if(!File.Exists(@SETTINGS_FILENAME)) {
+            Console.WriteLine("Could not create settings.json. Aborting.");
+            return null;
+        }
+
+        try {
+            string settings = File.ReadAllText(@SETTINGS_FILENAME);
+            if(settings.Length <= 0) {
+                return null;
+            }
+
+
+            Config? config = JsonSerializer.Deserialize<Config>(settings);
+            return config;
+        } catch(Exception) {
+            return null;
+        }
+    }
+}
+
+public class Config
+{
+    public required string imageFolder { get; set; }
+    public required int maxFailuresBeforeStop { get; set; }
+    public required double imageSimilarityTolerance { get; set; }
+    public required int imageSearchDelayInMs { get; set; }
+    
 }
