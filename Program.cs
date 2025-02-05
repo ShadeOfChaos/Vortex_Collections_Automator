@@ -17,6 +17,7 @@ public class ImageSearcherConsole
     private const int SM_CYSCREEN = 1;
     private const int MOUSEEVENTF_LEFTDOWN = 0x02;
     private const int MOUSEEVENTF_LEFTUP = 0x04;
+    private const string SETTINGS_FILENAME = "settings.json";
 
     /// <summary>
     /// Searches for the given searchImage on the given sourceImage and returns the location of the center of the first match found.
@@ -115,6 +116,27 @@ public class ImageSearcherConsole
     }
 
     /// <summary>
+    /// Initializes the program for first run by creating the needed folders and files.
+    /// </summary>
+    /// <remarks>
+    /// This function is only called when the program is run for the first time.
+    /// It creates the 'images' folder and the 'config' folder and its contents.
+    /// </remarks>
+    public static void FirstRun() {
+        if(!Directory.Exists("images")) {
+            Console.WriteLine("Creating 'images' folder.");
+            Directory.CreateDirectory("images");
+        }
+
+        if(!Directory.Exists("config")) {
+            Console.WriteLine("Creating 'config' folder.");
+            Directory.CreateDirectory("config");
+
+            Console.WriteLine("Creating 'config/settings.json' file.");
+        }
+    }
+
+    /// <summary>
     /// The main entry point for the application.
     /// </summary>
     /// <remarks>
@@ -123,6 +145,15 @@ public class ImageSearcherConsole
     /// </remarks>
     public static void Main(string[] args)
     {
+        if(!Directory.Exists("images") || !File.Exists("config/settings.json")) {
+            Console.WriteLine("First run, initializing...");
+            FirstRun();
+            Console.WriteLine("Please add screenshots of the download buttons to the images folder.");
+            Console.WriteLine("Or get the provided screenshots at https://github.com/ShadeOfChaos/Vortex_Collections_Automator/tree/main/images");
+            Console.WriteLine("Press ANY key to continue after adding the screenshots.");
+            Console.ReadKey();
+        }
+
         Config? config = ReadConfig();
         if(config == null) {
             Console.WriteLine("Could not read settings.json. Aborting. Press any key to exit.");
@@ -143,6 +174,11 @@ public class ImageSearcherConsole
             foreach (string file in imageFiles)
             {
                 imageToFindList.Add((Bitmap)Image.FromFile(file));
+            }
+
+            if(imageToFindList.Count <= 0) {
+                Console.WriteLine("No images found in images folder. Aborting. Press ANY key to exit.");
+                Console.Read();
             }
 
             Console.Write("");
@@ -178,27 +214,21 @@ public class ImageSearcherConsole
         }
     }
 
+    
     /// <summary>
-    /// Reads the configuration from settings.json.
-    /// If the file does not exist, it will be created with default values.
+    /// Reads the configuration settings from the 'settings.json' file.
+    /// If the file does not exist, attempts to create it using default settings.
     /// </summary>
-    /// <returns>The configuration read from the file, or null if the file cannot be read.</returns>
+    /// <returns>A Config object with the settings if successful, otherwise null.</returns>
     private static Config? ReadConfig() {
-        const string SETTINGS_FILENAME = "settings.json";
-
         if(!File.Exists(@SETTINGS_FILENAME)) {
             Console.WriteLine("No settings.json found. Creating one.");
 
-            Config newConfig = new Config
-            {
-                imageFolder = "images",
-                maxFailuresBeforeStop = 10,
-                imageSimilarityTolerance = 0.95,
-                imageSearchDelayInMs = 6000
-            };
-
-            string json = JsonSerializer.Serialize(newConfig);
-            File.WriteAllText(@SETTINGS_FILENAME, json, Encoding.UTF8);
+            bool fileCreationSuccess = CreateSettings();
+            if(!fileCreationSuccess) {
+                Console.WriteLine("Could not create settings.json. Aborting.");
+                return null;
+            }
         }
 
         if(!File.Exists(@SETTINGS_FILENAME)) {
@@ -218,6 +248,29 @@ public class ImageSearcherConsole
         } catch(Exception) {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Creates the default settings.json file if it does not exist.
+    /// Returns true if the file was created successfully, false otherwise.
+    /// </summary>
+    private static bool CreateSettings() {
+        Config newConfig = new Config
+        {
+            imageFolder = "images",
+            maxFailuresBeforeStop = 10,
+            imageSimilarityTolerance = 0.95,
+            imageSearchDelayInMs = 6000
+        };
+
+        try {
+            string json = JsonSerializer.Serialize(newConfig);
+            File.WriteAllText(@SETTINGS_FILENAME, json, Encoding.UTF8);
+        } catch(Exception) {
+            return false;
+        }
+
+        return File.Exists(@SETTINGS_FILENAME);
     }
 }
 
