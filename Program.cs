@@ -28,6 +28,7 @@ public class ImageSearcherConsole
     /// <returns>The location of the center of the first match found, or null if no match was found.</returns>
     public static Point? FindImage(Bitmap sourceImage, Bitmap searchImage, double tolerance = 0.95)
     {
+        const int COLOR_MAX_VALUE = 255;
         int sourceWidth = sourceImage.Width;
         int sourceHeight = sourceImage.Height;
         int searchWidth = searchImage.Width;
@@ -45,9 +46,9 @@ public class ImageSearcherConsole
                         Color sourcePixel = sourceImage.GetPixel(x + sx, y + sy);
                         Color searchPixel = searchImage.GetPixel(sx, sy);
 
-                        if (Math.Abs(sourcePixel.R - searchPixel.R) > 255 * (1 - tolerance) ||
-                            Math.Abs(sourcePixel.G - searchPixel.G) > 255 * (1 - tolerance) ||
-                            Math.Abs(sourcePixel.B - searchPixel.B) > 255 * (1 - tolerance))
+                        if (Math.Abs(sourcePixel.R - searchPixel.R) > COLOR_MAX_VALUE * (1 - tolerance) ||
+                            Math.Abs(sourcePixel.G - searchPixel.G) > COLOR_MAX_VALUE * (1 - tolerance) ||
+                            Math.Abs(sourcePixel.B - searchPixel.B) > COLOR_MAX_VALUE * (1 - tolerance))
                         {
                             match = false;
                             break;
