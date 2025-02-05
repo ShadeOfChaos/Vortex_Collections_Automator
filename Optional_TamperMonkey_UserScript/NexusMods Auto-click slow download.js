@@ -3,6 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      2025-02-05
 // @description  Automatically clicks the "Slow download"-button on NexusMods
+// @company      OfChaos
 // @author       ShadeOfChaos
 // @match        *://www.nexusmods.com/*
 // @match        *://nexusmods.com/*
