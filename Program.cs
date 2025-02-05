@@ -133,6 +133,11 @@ public class ImageSearcherConsole
             Directory.CreateDirectory("config");
 
             Console.WriteLine("Creating 'config/settings.json' file.");
+            bool fileCreationSuccess = CreateSettings();
+            if(!fileCreationSuccess) {
+                Console.WriteLine("Could not create settings.json. Aborting.");
+                Environment.Exit(0);
+            }
         }
     }
 
@@ -150,6 +155,7 @@ public class ImageSearcherConsole
             FirstRun();
             Console.WriteLine("Please add screenshots of the download buttons to the images folder.");
             Console.WriteLine("Or get the provided screenshots at https://github.com/ShadeOfChaos/Vortex_Collections_Automator/tree/main/images");
+            Console.WriteLine();
             Console.WriteLine("Press ANY key to continue after adding the screenshots.");
             Console.ReadKey();
         }
@@ -167,7 +173,7 @@ public class ImageSearcherConsole
 
         try
         {
-            Console.WriteLine("Starting image search...");
+            Console.WriteLine("Gathering images from folder...");
 
             List<Bitmap> imageToFindList = new List<Bitmap>();
             string[] imageFiles = Directory.GetFiles(config.imageFolder, "*.*", SearchOption.TopDirectoryOnly);
@@ -179,11 +185,12 @@ public class ImageSearcherConsole
             if(imageToFindList.Count <= 0) {
                 Console.WriteLine("No images found in images folder. Aborting. Press ANY key to exit.");
                 Console.Read();
+                Environment.Exit(0);
             }
 
-            Console.Write("");
-            Console.WriteLine("Performing Loop, hold ANY key to stop or wait till finished.");
-            Console.Write("");
+            Console.WriteLine();
+            Console.WriteLine("Performing Loop, 'HOLD' ANY key to stop or wait till finished.");
+            Console.WriteLine();
 
             while (!Console.KeyAvailable && failures < config.maxFailuresBeforeStop)
             {
@@ -202,7 +209,7 @@ public class ImageSearcherConsole
 
             int filesTracked = (int)MathF.Floor(tracker / 2f);
 
-            Console.WriteLine("");
+            Console.WriteLine();
             Console.WriteLine("Task finished or canceled");
             Console.WriteLine($"Amount of files downloaded total: { filesTracked}");
             Console.Read();
