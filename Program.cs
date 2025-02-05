@@ -17,7 +17,7 @@ public class ImageSearcherConsole
     private const int SM_CYSCREEN = 1;
     private const int MOUSEEVENTF_LEFTDOWN = 0x02;
     private const int MOUSEEVENTF_LEFTUP = 0x04;
-    private const string SETTINGS_FILENAME = "settings.json";
+    private const string SETTINGS_FILENAME = "config/settings.json";
 
     /// <summary>
     /// Searches for the given searchImage on the given sourceImage and returns the location of the center of the first match found.
